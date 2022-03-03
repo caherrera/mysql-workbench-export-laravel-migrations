@@ -394,7 +394,7 @@ def generate_laravel5_migration(catalog):
                                 index_key_template = indexKeyTemplate.format(
                                     indexType=index_type,
                                     indexColumns=", ".join(
-                                        ['"{}"'.format(column_name) for column_name in indexes[index_type][index_name]]),
+                                        ["'{}'".format(column_name) for column_name in indexes[index_type][index_name]]),
                                     indexName=index_name
                                 )
                                 migrations[ti].append(index_key_template)
