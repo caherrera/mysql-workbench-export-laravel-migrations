@@ -332,6 +332,11 @@ def generate_laravel5_migration(catalog):
                                 migrations[ti].append('{}$table->rememberToken();\n'.format(
                                     " " * 12
                                 ))
+                            elif col.name == 'id'\
+                                    and typesDict[col_type] == 'bigIncrements':
+                                migrations[ti].append('{}$table->id();\n'.format(
+                                    " " * 12
+                                ))
                             elif typesDict[col_type]:
                                 migrations[ti].append("{}$table->{}('{}{})".format(
                                     " " * 12,
