@@ -413,8 +413,6 @@ def generate_laravel5_migration(catalog):
                                 )
                                 migrations[ti].append(index_key_template)
 
-                    first_foreign_created = False
-
                     for key in tbl.foreignKeys:
                         if key.name != '' and hasattr(key.index, 'name'):
                             index_name = key.index.name
@@ -424,11 +422,6 @@ def generate_laravel5_migration(catalog):
                                 index_name = tbl.name + "_" + key.columns[0].name
 
                             if key.referencedColumns[0].owner.name in migration_tables:
-
-                                if not first_foreign_created:
-                                    migrations[ti].append('\n')
-                                    first_foreign_created = True
-
                                 delete_rule = key.deleteRule
                                 if delete_rule == "":
                                     delete_rule = "RESTRICT"
