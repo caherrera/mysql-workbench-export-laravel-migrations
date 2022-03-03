@@ -399,10 +399,10 @@ def generate_laravel5_migration(catalog):
                                 )
                                 migrations[ti].append(index_key_template)
 
-                    if deleted_at is True:
-                        migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
                     if timestamps is True or timestamps_nullable is True:
                         migrations[ti].append('{}$table->timestamps();\n'.format(" " * 12))
+                    if deleted_at is True:
+                        migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
 
                     first_foreign_created = False
 
