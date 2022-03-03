@@ -291,6 +291,11 @@ def generate_laravel5_migration(catalog):
                                 deleted_at = True
                                 continue
 
+                            col_has_foreign_key = False
+                            for key in tbl.foreignKeys:
+                                if key.name != '' and hasattr(key.index, 'name') and key.columns[0].name == col.name:
+                                    col_has_foreign_key = True
+
                             if col.simpleType:
                                 col_type = col.simpleType.name
                                 col_type_group = col.simpleType.group.name
@@ -389,7 +394,7 @@ def generate_laravel5_migration(catalog):
                                         migrations[ti].append('->unique()')
 
                                 for index_name in indexes['index']:
-                                    if len(indexes['index'][index_name]) == 1 and indexes['index'][index_name][0] == col.name:
+                                    if len(indexes['index'][index_name]) == 1 and indexes['index'][index_name][0] == col.name and not col_has_foreign_key:
                                         migrations[ti].append('->index()')
 
                                 migrations[ti].append(';\n')
