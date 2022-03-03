@@ -258,6 +258,19 @@ def generate_laravel5_migration(catalog):
                     else:
                         primary_col = None
 
+                    # Generate indexes
+                    indexes = {"primary": {}, "unique": {}, "index": {}}
+                    for index in tbl.indices:
+                        index_type = index.indexType.lower()
+                        if index_type == "primary":
+                            continue
+
+                        index_name = index.name
+                        indexes[index_type][index_name] = []
+
+                        for column in index.columns:
+                            indexes[index_type][index_name].append(column.referencedColumn.name)
+
                     default_time_values = [
                         'CURRENT_TIMESTAMP',
                         'NULL ON UPDATE CURRENT_TIMESTAMP',
@@ -371,6 +384,14 @@ def generate_laravel5_migration(catalog):
                                 if col.comment != '':
                                     migrations[ti].append("->comment('{}')".format(addslashes(col.comment)))
 
+                                for index_name in indexes['unique']:
+                                    if len(indexes['unique'][index_name]) == 1 and indexes['unique'][index_name][0] == col.name:
+                                        migrations[ti].append('->unique()')
+
+                                for index_name in indexes['index']:
+                                    if len(indexes['index'][index_name]) == 1 and indexes['index'][index_name][0] == col.name:
+                                        migrations[ti].append('->index()')
+
                                 migrations[ti].append(';\n')
                         except AttributeError:
                             pass
@@ -380,22 +401,10 @@ def generate_laravel5_migration(catalog):
                     if deleted_at is True:
                         migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
 
-                    # Generate indexes
-                    indexes = {"primary": {}, "unique": {}, "index": {}}
-                    for index in tbl.indices:
-                        index_type = index.indexType.lower()
-                        if index_type == "primary":
-                            continue
-
-                        index_name = index.name
-                        indexes[index_type][index_name] = []
-
-                        for column in index.columns:
-                            indexes[index_type][index_name].append(column.referencedColumn.name)
-
+                    # Append indexes
                     for index_type in indexes:
                         for index_name in indexes[index_type]:
-                            if len(indexes[index_type][index_name]) != 0:
+                            if len(indexes[index_type][index_name]) > 1:
                                 index_key_template = indexKeyTemplate.format(
                                     indexType=index_type,
                                     indexColumns=", ".join(
