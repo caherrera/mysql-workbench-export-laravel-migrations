@@ -350,7 +350,7 @@ def generate_laravel5_migration(catalog):
                                 if typesDict[col_type] == 'integer' and 'UNSIGNED' in col.flags:
                                     migrations[ti].append('->unsigned()')
 
-                                if col == primary_col and typesDict[col_type] == 'string':
+                                if col == primary_col and (typesDict[col_type] == 'string' or typesDict[col_type] == 'uuid'):
                                     migrations[ti].append('->primary()')
 
                                 if col.isNotNull != 1 and col != primary_col:
@@ -372,9 +372,6 @@ def generate_laravel5_migration(catalog):
                                     migrations[ti].append("->comment('{}')".format(addslashes(col.comment)))
 
                                 migrations[ti].append(';\n')
-
-                            if col.name == 'id' and typesDict[col_type] == 'uuid':
-                                migrations[ti].append('{}$table->primary(\'id\');\n'.format(" " * 12))
                         except AttributeError:
                             pass
 
