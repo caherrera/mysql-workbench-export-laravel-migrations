@@ -355,7 +355,7 @@ def generate_laravel5_migration(catalog):
                                     migrations[ti].append('->nullable()')
 
                                 if col.defaultValue != '' and col.defaultValueIsNull != 0:
-                                    migrations[ti].append('->default(null)')
+                                    pass
                                 elif col.defaultValue != '':
                                     default_value = col.defaultValue.replace("'", "")
 
