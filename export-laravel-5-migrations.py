@@ -363,9 +363,6 @@ def generate_laravel5_migration(catalog):
                                 if typesDict[col_type] == 'integer' and 'UNSIGNED' in col.flags:
                                     migrations[ti].append('->unsigned()')
 
-                                if col == primary_col and (typesDict[col_type] == 'string' or typesDict[col_type] == 'uuid'):
-                                    migrations[ti].append('->primary()')
-
                                 if col.isNotNull != 1 and col != primary_col:
                                     migrations[ti].append('->nullable()')
 
@@ -383,6 +380,9 @@ def generate_laravel5_migration(catalog):
 
                                 if col.comment != '':
                                     migrations[ti].append("->comment('{}')".format(addslashes(col.comment)))
+
+                                if col == primary_col and (typesDict[col_type] == 'string' or typesDict[col_type] == 'uuid'):
+                                    migrations[ti].append('->primary()')
 
                                 for index_name in indexes['unique']:
                                     if len(indexes['unique'][index_name]) == 1 and indexes['unique'][index_name][0] == col.name:
