@@ -343,7 +343,7 @@ def generate_laravel5_migration(catalog):
                             elif typesDict[col_type] == 'enum':
                                 col_data = '\', [%s]' % (col.datatypeExplicitParams[1:-1])
                             elif typesDict[col_type] == 'string':
-                                if -1 < col.length < 255:
+                                if col.length > -1 and col.length != 255:
                                     col_data = '\', %s' % (str(col.length))
                                 else:
                                     col_data = '\''
