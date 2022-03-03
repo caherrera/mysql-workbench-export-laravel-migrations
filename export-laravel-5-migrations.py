@@ -222,7 +222,8 @@ def generate_laravel5_migration(catalog):
                         tableName=table_name
                     ))
 
-                    migrations[ti].append("{}$table->engine = '{}';\n".format(" " * 12, table_engine))
+                    if table_engine != 'InnoDB':
+                        migrations[ti].append("{}$table->engine = '{}';\n".format(" " * 12, table_engine))
 
                     created_at = created_at_nullable \
                         = updated_at \
