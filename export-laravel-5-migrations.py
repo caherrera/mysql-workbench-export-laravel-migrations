@@ -113,7 +113,7 @@ class Create{tableNameCamelCase}Table extends Migration
 '''
 
 foreignKeyTemplate = '''
-            $table->foreign('{foreignKey}', '{foreignKeyName}')
+            $table->foreign('{foreignKey}')
                 ->references('{tableKeyName}')->on('{foreignTableName}')
                 ->onDelete('{onDeleteAction}')
                 ->onUpdate('{onUpdateAction}');
@@ -134,7 +134,7 @@ schemaCreateTemplate = '''
 '''
 
 indexKeyTemplate = '''
-            $table->{indexType}([{indexColumns}], '{indexName}');
+            $table->{indexType}([{indexColumns}]);
 '''
 
 migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
@@ -416,7 +416,6 @@ def generate_laravel5_migration(catalog):
                                     indexType=index_type,
                                     indexColumns=", ".join(
                                         ["'{}'".format(column_name) for column_name in indexes[index_type][index_name]]),
-                                    indexName=index_name
                                 )
                                 migrations[ti].append(index_key_template)
 
@@ -439,7 +438,6 @@ def generate_laravel5_migration(catalog):
 
                                 migrations[ti].append(foreignKeyTemplate.format(
                                     foreignKey=foreign_key,
-                                    foreignKeyName=index_name,
                                     tableKeyName=key.referencedColumns[0].name,
                                     foreignTableName=key.referencedColumns[0].owner.name,
                                     onDeleteAction=delete_rule.lower(),
@@ -485,7 +483,6 @@ def generate_laravel5_migration(catalog):
                                         )
                                     migrations[ti].append(foreignKeyTemplate.format(
                                         foreignKey=item['key'],
-                                        foreignKeyName=item['name'],
                                         tableKeyName=item['referenced_name'],
                                         foreignTableName=item['referenced_table'],
                                         onDeleteAction=item['delete_rule'].lower(),
