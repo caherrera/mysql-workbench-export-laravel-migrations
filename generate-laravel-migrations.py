@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # MySQL Workbench module
-# A MySQL Workbench plugin which exports a Model to Laravel 5 Migrations
+# A MySQL Workbench plugin which exports a Model to Laravel Migrations
 # Written in MySQL Workbench 6.3.6
 # Support for MySQL Workbench 8.0 added
 
@@ -143,21 +143,21 @@ migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
 '''
 
 ModuleInfo = DefineModule(
-    name='GenerateLaravel5Migration',
+    name='GenerateLaravelMigrations',
     author='Brandon Eckenrode',
     version='0.2'
 )
 
 
 @ModuleInfo.plugin(
-    'wb.util.generate_laravel5_migration',
-    caption='Export Laravel 5 Migration',
+    'wb.util.generate_laravel_migrations',
+    caption='Generate Laravel Migrations',
     input=[wbinputs.currentCatalog()],
     groups=['Catalog/Utilities', 'Menu/Catalog'],
     pluginMenu='Catalog'
 )
 @ModuleInfo.export(grt.INT, grt.classes.db_Catalog)
-def generate_laravel5_migration(catalog):
+def generate_laravel_migrations(catalog):
     def create_tree(table_schema):
         tree = {}
         for tbl in sorted(table_schema.tables, key=lambda table: table.name):
@@ -531,7 +531,7 @@ def generate_laravel5_migration(catalog):
     sql_text = out.getvalue()
     out.close()
 
-    wizard = GenerateLaravel5MigrationWizard(sql_text)
+    wizard = GenerateLaravelMigrationWizard(sql_text)
     wizard.run()
 
     return 0
@@ -546,14 +546,14 @@ class GenerateLaravel5MigrationError(Exception):
         return repr(self.typ) + ': ' + repr(self.message)
 
 
-class GenerateLaravel5MigrationWizardPreviewPage(WizardPage):
+class GenerateLaravelMigrationsWizardPreviewPage(WizardPage):
     def __init__(self, owner, sql_text):
-        WizardPage.__init__(self, owner, 'Review Generated Migration(s)')
+        WizardPage.__init__(self, owner, 'Review Generated Migrations')
 
         self.save_button = mforms.newButton()
         self.save_button.enable_internal_padding(True)
-        self.save_button.set_text('Save Migration(s) to Folder...')
-        self.save_button.set_tooltip('Select the folder to save your migration(s) to.')
+        self.save_button.set_text('Save Migrations to Directory...')
+        self.save_button.set_tooltip('Select the directory to save your migrations to.')
         self.save_button.add_clicked_callback(self.save_clicked)
 
         self.sql_text = mforms.newCodeEditor()
@@ -619,19 +619,19 @@ class GenerateLaravel5MigrationWizardPreviewPage(WizardPage):
                     )
 
 
-class GenerateLaravel5MigrationWizard(WizardForm):
+class GenerateLaravelMigrationWizard(WizardForm):
     def __init__(self, sql_text):
         WizardForm.__init__(self, None)
 
-        self.set_name('generate_laravel_5_migration_wizard')
-        self.set_title('Generate Laravel 5 Migration Wizard')
+        self.set_name('generate_laravel_migrations_wizard')
+        self.set_title('Generate Laravel Migrations Wizard')
 
-        self.preview_page = GenerateLaravel5MigrationWizardPreviewPage(self, sql_text)
+        self.preview_page = GenerateLaravelMigrationsWizardPreviewPage(self, sql_text)
         self.add_page(self.preview_page)
 
 
 try:
     # For scripting shell
-    generate_laravel5_migration(grt.root.wb.doc.physicalModels[0].catalog)
+    generate_laravel_migrations(grt.root.wb.doc.physicalModels[0].catalog)
 except Exception:
     pass
