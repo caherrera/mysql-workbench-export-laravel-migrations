@@ -375,6 +375,11 @@ def generate_laravel5_migration(catalog):
                         except AttributeError:
                             pass
 
+                    if timestamps is True or timestamps_nullable is True:
+                        migrations[ti].append('{}$table->timestamps();\n'.format(" " * 12))
+                    if deleted_at is True:
+                        migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
+
                     # Generate indexes
                     indexes = {"primary": {}, "unique": {}, "index": {}}
                     for index in tbl.indices:
@@ -398,11 +403,6 @@ def generate_laravel5_migration(catalog):
                                     indexName=index_name
                                 )
                                 migrations[ti].append(index_key_template)
-
-                    if timestamps is True or timestamps_nullable is True:
-                        migrations[ti].append('{}$table->timestamps();\n'.format(" " * 12))
-                    if deleted_at is True:
-                        migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
 
                     first_foreign_created = False
 
