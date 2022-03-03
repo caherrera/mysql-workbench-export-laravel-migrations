@@ -312,6 +312,8 @@ def generate_laravel5_migration(catalog):
                                     col_type = "VARCHAR"
                                 elif col_type == "CHAR" and col.length == 36:
                                     col_type = "UUID"
+                                elif col_type == "CHAR":
+                                    pass
                                 else:
                                     col_type = "INCREMENTS"
 
