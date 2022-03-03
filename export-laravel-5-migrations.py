@@ -280,8 +280,10 @@ def generate_laravel5_migration(catalog):
 
                             if col.simpleType:
                                 col_type = col.simpleType.name
+                                col_type_group = col.simpleType.group.name
                             else:
                                 col_type = col.userType.name
+                                col_type_group = col.userType.group.name
 
                             if col == primary_col:
                                 if col_type == "BIGINT":
@@ -361,6 +363,8 @@ def generate_laravel5_migration(catalog):
 
                                     if default_value in default_time_values:
                                         migrations[ti].append("->default(DB::raw('{}'))".format(default_value))
+                                    elif col_type_group == 'numeric':
+                                        migrations[ti].append("->default({})".format(default_value))
                                     else:
                                         migrations[ti].append("->default('{}')".format(default_value))
 
