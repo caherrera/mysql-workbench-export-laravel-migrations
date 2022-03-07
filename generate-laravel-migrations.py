@@ -114,9 +114,9 @@ class Create{tableNameCamelCase}Table extends Migration
 
 foreignKeyTemplate = '''
             $table->foreign('{foreignKey}')
-                ->references('{tableKeyName}')->on('{foreignTableName}')
-                ->onDelete('{onDeleteAction}')
-                ->onUpdate('{onUpdateAction}');
+                  ->references('{tableKeyName}')->on('{foreignTableName}')
+                  ->onUpdate('{onUpdateAction}')
+                  ->onDelete('{onDeleteAction}');
 '''
 
 migrationDownTemplate = '''
@@ -440,8 +440,8 @@ def generate_laravel_migrations(catalog):
                                     foreignKey=foreign_key,
                                     tableKeyName=key.referencedColumns[0].name,
                                     foreignTableName=key.referencedColumns[0].owner.name,
-                                    onDeleteAction=delete_rule.lower(),
-                                    onUpdateAction=update_rule.lower()
+                                    onUpdateAction=update_rule.lower(),
+                                    onDeleteAction=delete_rule.lower()
                                 ))
 
                             else:
