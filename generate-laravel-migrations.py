@@ -115,8 +115,8 @@ class Create{tableNameCamelCase}Table extends Migration
 foreignKeyTemplate = '''
             $table->foreign('{foreignKey}')
                   ->references('{tableKeyName}')->on('{foreignTableName}')
-                  ->onUpdate('{onUpdateAction}')
-                  ->onDelete('{onDeleteAction}');
+                  {onUpdateMethod}
+                  {onDeleteMethod};
 '''
 
 migrationDownTemplate = '''
@@ -432,16 +432,32 @@ def generate_laravel_migrations(catalog):
                                 if delete_rule == "":
                                     delete_rule = "RESTRICT"
 
+                                if delete_rule == 'CASCADE':
+                                    on_delete_method = '->cascadeOnDelete()'
+                                elif delete_rule == 'RESTRICT' or delete_rule == 'NO ACTION':
+                                    on_delete_method = '->restrictOnDelete()'
+                                elif delete_rule == 'SET NULL':
+                                    on_delete_method = '->nullOnDelete()'
+                                else:
+                                    on_delete_method = "->onDelete('{onDeleteAction}')".format(onDeleteAction=delete_rule.lower())
+
                                 update_rule = key.updateRule
                                 if update_rule == "":
                                     update_rule = "RESTRICT"
+
+                                if update_rule == 'CASCADE':
+                                    on_update_method = '->cascadeOnUpdate()'
+                                elif update_rule == 'RESTRICT' or update_rule == 'NO ACTION':
+                                    on_update_method = '->restrictOnUpdate()'
+                                else:
+                                    on_update_method = "->onUpdate('{onUpdateAction}')".format(onUpdateAction=update_rule.lower())
 
                                 migrations[ti].append(foreignKeyTemplate.format(
                                     foreignKey=foreign_key,
                                     tableKeyName=key.referencedColumns[0].name,
                                     foreignTableName=key.referencedColumns[0].owner.name,
-                                    onUpdateAction=update_rule.lower(),
-                                    onDeleteAction=delete_rule.lower()
+                                    onUpdateMethod=on_update_method,
+                                    onDeleteMethod=on_delete_method
                                 ))
 
                             else:
