@@ -172,6 +172,7 @@ def generate_laravel_migrations(catalog):
 
         d = dict((k, set(tree[k])) for k in tree)
         r = []
+        i = 0
         while d:
             # values not in keys (items without dep)
             t = set(i for v in d.values() for i in v) - set(d.keys())
@@ -181,6 +182,14 @@ def generate_laravel_migrations(catalog):
             r.append(t)
             # and cleaned up
             d = dict(((k, v - t) for k, v in d.items() if v))
+
+            i += 1
+            if i > 9999:
+                raise GenerateLaravelMigrationsException(
+                    'Circular reference detected!',
+                    'Unfortunately, circular references are not supported. Find and remove the circular reference(s) and try again.'
+                )
+
         return r
 
     def addslashes(s):
@@ -533,8 +542,8 @@ def generate_laravel_migrations(catalog):
             table_tree = create_tree(schema[0])
             migrations = export_schema(schema[0], table_tree)
 
-    except GenerateLaravel5MigrationError as e:
-        grt.modules.Workbench.confirm(e.typ, e.message)
+    except GenerateLaravelMigrationsException as e:
+        grt.modules.Workbench.confirm(e.title, e.message)
         return 1
 
     now = datetime.datetime.now()
@@ -559,13 +568,13 @@ def generate_laravel_migrations(catalog):
     return 0
 
 
-class GenerateLaravel5MigrationError(Exception):
-    def __init__(self, typ, message):
-        self.typ = typ
+class GenerateLaravelMigrationsException(Exception):
+    def __init__(self, title, message):
+        self.title = title
         self.message = message
 
     def __str__(self):
-        return repr(self.typ) + ': ' + repr(self.message)
+        return repr(self.title) + ': ' + repr(self.message)
 
 
 class GenerateLaravelMigrationsWizardPreviewPage(WizardPage):
