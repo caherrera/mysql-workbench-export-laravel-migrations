@@ -303,6 +303,9 @@ def generate_laravel_migrations(catalog):
                                 col_type = col.userType.name
                                 col_type_group = col.userType.group.name
 
+                            if col_type == "TINYINT" and col.precision == 1:
+                                col_type = "BOOLEAN"
+
                             if col == primary_col:
                                 if col_type == "BIGINT":
                                     col_type = "BIG_INCREMENTS"
@@ -380,6 +383,9 @@ def generate_laravel_migrations(catalog):
 
                                     if default_value in default_time_values:
                                         migrations[ti].append("->default(DB::raw('{}'))".format(default_value))
+                                    elif typesDict[col_type] == 'boolean':
+                                        default_value = 'true' if default_value == '1' else 'false'
+                                        migrations[ti].append("->default({})".format(default_value))
                                     elif col_type_group == 'numeric':
                                         migrations[ti].append("->default({})".format(default_value))
                                     else:
