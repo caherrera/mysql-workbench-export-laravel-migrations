@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # MySQL Workbench module
-# A MySQL Workbench plugin which exports a Model to Laravel 5 Migrations
+# A MySQL Workbench plugin which exports a Model to Laravel Migrations
 # Written in MySQL Workbench 6.3.6
 # Support for MySQL Workbench 8.0 added
 
@@ -101,31 +101,26 @@ namespace Database\Migrations;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class Create{tableNameCamelCase}Table extends Migration
 {{
     /**
-     * Schema table name to migrate
-     * @var string
-     */
-    public $tableName = '{tableName}';
-
-    /**
      * Run the migrations.
-     * @table {tableName}
      *
      * @return void
      */
     public function up()
     {{
-        Schema::create($this->tableName, function (Blueprint $table) {{
+        Schema::create('{tableName}', function (Blueprint $table) {{
 '''
 
 foreignKeyTemplate = '''
-            $table->foreign('{foreignKey}', '{foreignKeyName}')
-                ->references('{tableKeyName}')->on('{foreignTableName}')
-                ->onDelete('{onDeleteAction}')
-                ->onUpdate('{onUpdateAction}');
+            $table->foreign('{foreignKey}')
+                  ->references('{tableKeyName}')->on('{foreignTableName}')
+                  {onUpdateMethod}
+                  {onDeleteMethod};
 '''
 
 migrationDownTemplate = '''
@@ -143,30 +138,30 @@ schemaCreateTemplate = '''
 '''
 
 indexKeyTemplate = '''
-            $table->{indexType}([{indexColumns}], '{indexName}');
+            $table->{indexType}([{indexColumns}]);
 '''
 
-migrationEndingTemplate = '''        Schema::dropIfExists($this->tableName);
+migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
     }}
 }}
 '''
 
 ModuleInfo = DefineModule(
-    name='GenerateLaravel5Migration',
-    author='Brandon Eckenrode',
-    version='0.2'
+    name='GenerateLaravelMigrations',
+    author='Pat Gagnon-Renaud (eXolnet)',
+    version='1.2.0'
 )
 
 
 @ModuleInfo.plugin(
-    'wb.util.generate_laravel5_migration',
-    caption='Export Laravel 5 Migration',
+    'wb.util.generate_laravel_migrations',
+    caption='Generate Laravel Migrations',
     input=[wbinputs.currentCatalog()],
     groups=['Catalog/Utilities', 'Menu/Catalog'],
     pluginMenu='Catalog'
 )
 @ModuleInfo.export(grt.INT, grt.classes.db_Catalog)
-def generate_laravel5_migration(catalog):
+def generate_laravel_migrations(catalog):
     def create_tree(table_schema):
         tree = {}
         for tbl in sorted(table_schema.tables, key=lambda table: table.name):
@@ -181,6 +176,7 @@ def generate_laravel5_migration(catalog):
 
         d = dict((k, set(tree[k])) for k in tree)
         r = []
+        i = 0
         while d:
             # values not in keys (items without dep)
             t = set(i for v in d.values() for i in v) - set(d.keys())
@@ -190,6 +186,14 @@ def generate_laravel5_migration(catalog):
             r.append(t)
             # and cleaned up
             d = dict(((k, v - t) for k, v in d.items() if v))
+
+            i += 1
+            if i > 9999:
+                raise GenerateLaravelMigrationsException(
+                    'Circular reference detected!',
+                    'Unfortunately, circular references are not supported. Find and remove the circular reference(s) and try again.'
+                )
+
         return r
 
     def addslashes(s):
@@ -231,7 +235,8 @@ def generate_laravel5_migration(catalog):
                         tableName=table_name
                     ))
 
-                    migrations[ti].append("{}$table->engine = '{}';\n".format(" " * 12, table_engine))
+                    if table_engine != 'InnoDB':
+                        migrations[ti].append("{}$table->engine = '{}';\n".format(" " * 12, table_engine))
 
                     created_at = created_at_nullable \
                         = updated_at \
@@ -266,6 +271,19 @@ def generate_laravel5_migration(catalog):
                     else:
                         primary_col = None
 
+                    # Generate indexes
+                    indexes = {"primary": {}, "unique": {}, "index": {}}
+                    for index in tbl.indices:
+                        index_type = index.indexType.lower()
+                        if index_type == "primary":
+                            continue
+
+                        index_name = index.name
+                        indexes[index_type][index_name] = []
+
+                        for column in index.columns:
+                            indexes[index_type][index_name].append(column.referencedColumn.name)
+
                     default_time_values = [
                         'CURRENT_TIMESTAMP',
                         'NULL ON UPDATE CURRENT_TIMESTAMP',
@@ -286,10 +304,20 @@ def generate_laravel5_migration(catalog):
                                 deleted_at = True
                                 continue
 
+                            col_has_foreign_key = False
+                            for key in tbl.foreignKeys:
+                                if key.name != '' and hasattr(key.index, 'name') and key.columns[0].name == col.name:
+                                    col_has_foreign_key = True
+
                             if col.simpleType:
                                 col_type = col.simpleType.name
+                                col_type_group = col.simpleType.group.name
                             else:
                                 col_type = col.userType.name
+                                col_type_group = col.userType.group.name
+
+                            if col_type == "TINYINT" and col.precision == 1:
+                                col_type = "BOOLEAN"
 
                             if col == primary_col:
                                 if col_type == "BIGINT":
@@ -300,6 +328,8 @@ def generate_laravel5_migration(catalog):
                                     col_type = "VARCHAR"
                                 elif col_type == "CHAR" and col.length == 36:
                                     col_type = "UUID"
+                                elif col_type == "CHAR":
+                                    pass
                                 else:
                                     col_type = "INCREMENTS"
 
@@ -329,7 +359,7 @@ def generate_laravel5_migration(catalog):
                             elif typesDict[col_type] == 'enum':
                                 col_data = '\', [%s]' % (col.datatypeExplicitParams[1:-1])
                             elif typesDict[col_type] == 'string':
-                                if -1 < col.length < 255:
+                                if col.length > -1 and col.length != 255:
                                     col_data = '\', %s' % (str(col.length))
                                 else:
                                     col_data = '\''
@@ -338,6 +368,11 @@ def generate_laravel5_migration(catalog):
                                     and typesDict[col_type] == 'string'\
                                     and str(col.length) == '100':
                                 migrations[ti].append('{}$table->rememberToken();\n'.format(
+                                    " " * 12
+                                ))
+                            elif col.name == 'id'\
+                                    and typesDict[col_type] == 'bigIncrements':
+                                migrations[ti].append('{}$table->id();\n'.format(
                                     " " * 12
                                 ))
                             elif typesDict[col_type]:
@@ -351,64 +386,57 @@ def generate_laravel5_migration(catalog):
                                 if typesDict[col_type] == 'integer' and 'UNSIGNED' in col.flags:
                                     migrations[ti].append('->unsigned()')
 
-                                if col == primary_col and typesDict[col_type] == 'string':
-                                    migrations[ti].append('->primary()')
-
                                 if col.isNotNull != 1 and col != primary_col:
                                     migrations[ti].append('->nullable()')
 
                                 if col.defaultValue != '' and col.defaultValueIsNull != 0:
-                                    migrations[ti].append('->default(null)')
+                                    pass
                                 elif col.defaultValue != '':
                                     default_value = col.defaultValue.replace("'", "")
 
                                     if default_value in default_time_values:
                                         migrations[ti].append("->default(DB::raw('{}'))".format(default_value))
+                                    elif typesDict[col_type] == 'boolean':
+                                        default_value = 'true' if default_value == '1' else 'false'
+                                        migrations[ti].append("->default({})".format(default_value))
+                                    elif col_type_group == 'numeric':
+                                        migrations[ti].append("->default({})".format(default_value))
                                     else:
                                         migrations[ti].append("->default('{}')".format(default_value))
 
                                 if col.comment != '':
                                     migrations[ti].append("->comment('{}')".format(addslashes(col.comment)))
 
-                                migrations[ti].append(';\n')
+                                if col == primary_col and (typesDict[col_type] == 'string' or typesDict[col_type] == 'uuid'):
+                                    migrations[ti].append('->primary()')
 
-                            if col.name == 'id' and typesDict[col_type] == 'uuid':
-                                migrations[ti].append('{}$table->primary(\'id\');\n'.format(" " * 12))
+                                for index_name in indexes['unique']:
+                                    if len(indexes['unique'][index_name]) == 1 and indexes['unique'][index_name][0] == col.name:
+                                        migrations[ti].append('->unique()')
+
+                                for index_name in indexes['index']:
+                                    if len(indexes['index'][index_name]) == 1 and indexes['index'][index_name][0] == col.name and not col_has_foreign_key:
+                                        migrations[ti].append('->index()')
+
+                                migrations[ti].append(';\n')
                         except AttributeError:
                             pass
 
-                    # Generate indexes
-                    indexes = {"primary": {}, "unique": {}, "index": {}}
-                    for index in tbl.indices:
-                        index_type = index.indexType.lower()
-                        if index_type == "primary":
-                            continue
+                    if timestamps is True or timestamps_nullable is True:
+                        migrations[ti].append('{}$table->timestamps();\n'.format(" " * 12))
+                    if deleted_at is True:
+                        migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
 
-                        index_name = index.name
-                        indexes[index_type][index_name] = []
-
-                        for column in index.columns:
-                            indexes[index_type][index_name].append(column.referencedColumn.name)
-
+                    # Append indexes
                     for index_type in indexes:
                         for index_name in indexes[index_type]:
-                            if len(indexes[index_type][index_name]) != 0:
+                            if len(indexes[index_type][index_name]) > 1:
                                 index_key_template = indexKeyTemplate.format(
                                     indexType=index_type,
                                     indexColumns=", ".join(
-                                        ['"{}"'.format(column_name) for column_name in indexes[index_type][index_name]]),
-                                    indexName=index_name
+                                        ["'{}'".format(column_name) for column_name in indexes[index_type][index_name]]),
                                 )
                                 migrations[ti].append(index_key_template)
-
-                    if deleted_at is True:
-                        migrations[ti].append('{}$table->softDeletes();\n'.format(" " * 12))
-                    if timestamps is True:
-                        migrations[ti].append('{}$table->timestamps();\n'.format(" " * 12))
-                    elif timestamps_nullable is True:
-                        migrations[ti].append('{}$table->nullableTimestamps();\n'.format(" " * 12))
-
-                    first_foreign_created = False
 
                     for key in tbl.foreignKeys:
                         if key.name != '' and hasattr(key.index, 'name'):
@@ -419,26 +447,36 @@ def generate_laravel5_migration(catalog):
                                 index_name = tbl.name + "_" + key.columns[0].name
 
                             if key.referencedColumns[0].owner.name in migration_tables:
-
-                                if not first_foreign_created:
-                                    migrations[ti].append('\n')
-                                    first_foreign_created = True
-
                                 delete_rule = key.deleteRule
                                 if delete_rule == "":
                                     delete_rule = "RESTRICT"
+
+                                if delete_rule == 'CASCADE':
+                                    on_delete_method = '->cascadeOnDelete()'
+                                elif delete_rule == 'RESTRICT' or delete_rule == 'NO ACTION':
+                                    on_delete_method = '->restrictOnDelete()'
+                                elif delete_rule == 'SET NULL':
+                                    on_delete_method = '->nullOnDelete()'
+                                else:
+                                    on_delete_method = "->onDelete('{onDeleteAction}')".format(onDeleteAction=delete_rule.lower())
 
                                 update_rule = key.updateRule
                                 if update_rule == "":
                                     update_rule = "RESTRICT"
 
+                                if update_rule == 'CASCADE':
+                                    on_update_method = '->cascadeOnUpdate()'
+                                elif update_rule == 'RESTRICT' or update_rule == 'NO ACTION':
+                                    on_update_method = '->restrictOnUpdate()'
+                                else:
+                                    on_update_method = "->onUpdate('{onUpdateAction}')".format(onUpdateAction=update_rule.lower())
+
                                 migrations[ti].append(foreignKeyTemplate.format(
                                     foreignKey=foreign_key,
-                                    foreignKeyName=index_name,
                                     tableKeyName=key.referencedColumns[0].name,
                                     foreignTableName=key.referencedColumns[0].owner.name,
-                                    onDeleteAction=delete_rule.lower(),
-                                    onUpdateAction=update_rule.lower()
+                                    onUpdateMethod=on_update_method,
+                                    onDeleteMethod=on_delete_method
                                 ))
 
                             else:
@@ -480,7 +518,6 @@ def generate_laravel5_migration(catalog):
                                         )
                                     migrations[ti].append(foreignKeyTemplate.format(
                                         foreignKey=item['key'],
-                                        foreignKeyName=item['name'],
                                         tableKeyName=item['referenced_name'],
                                         foreignTableName=item['referenced_table'],
                                         onDeleteAction=item['delete_rule'].lower(),
@@ -509,8 +546,8 @@ def generate_laravel5_migration(catalog):
             table_tree = create_tree(schema[0])
             migrations = export_schema(schema[0], table_tree)
 
-    except GenerateLaravel5MigrationError as e:
-        grt.modules.Workbench.confirm(e.typ, e.message)
+    except GenerateLaravelMigrationsException as e:
+        grt.modules.Workbench.confirm(e.title, e.message)
         return 1
 
     now = datetime.datetime.now()
@@ -529,29 +566,29 @@ def generate_laravel5_migration(catalog):
     sql_text = out.getvalue()
     out.close()
 
-    wizard = GenerateLaravel5MigrationWizard(sql_text)
+    wizard = GenerateLaravelMigrationWizard(sql_text)
     wizard.run()
 
     return 0
 
 
-class GenerateLaravel5MigrationError(Exception):
-    def __init__(self, typ, message):
-        self.typ = typ
+class GenerateLaravelMigrationsException(Exception):
+    def __init__(self, title, message):
+        self.title = title
         self.message = message
 
     def __str__(self):
-        return repr(self.typ) + ': ' + repr(self.message)
+        return repr(self.title) + ': ' + repr(self.message)
 
 
-class GenerateLaravel5MigrationWizardPreviewPage(WizardPage):
+class GenerateLaravelMigrationsWizardPreviewPage(WizardPage):
     def __init__(self, owner, sql_text):
-        WizardPage.__init__(self, owner, 'Review Generated Migration(s)')
+        WizardPage.__init__(self, owner, 'Review Generated Migrations')
 
         self.save_button = mforms.newButton()
         self.save_button.enable_internal_padding(True)
-        self.save_button.set_text('Save Migration(s) to Folder...')
-        self.save_button.set_tooltip('Select the folder to save your migration(s) to.')
+        self.save_button.set_text('Save Migrations to Directory...')
+        self.save_button.set_tooltip('Select the directory to save your migrations to.')
         self.save_button.add_clicked_callback(self.save_clicked)
 
         self.sql_text = mforms.newCodeEditor()
@@ -617,19 +654,19 @@ class GenerateLaravel5MigrationWizardPreviewPage(WizardPage):
                     )
 
 
-class GenerateLaravel5MigrationWizard(WizardForm):
+class GenerateLaravelMigrationWizard(WizardForm):
     def __init__(self, sql_text):
         WizardForm.__init__(self, None)
 
-        self.set_name('generate_laravel_5_migration_wizard')
-        self.set_title('Generate Laravel 5 Migration Wizard')
+        self.set_name('generate_laravel_migrations_wizard')
+        self.set_title('Generate Laravel Migrations Wizard')
 
-        self.preview_page = GenerateLaravel5MigrationWizardPreviewPage(self, sql_text)
+        self.preview_page = GenerateLaravelMigrationsWizardPreviewPage(self, sql_text)
         self.add_page(self.preview_page)
 
 
 try:
     # For scripting shell
-    generate_laravel5_migration(grt.root.wb.doc.physicalModels[0].catalog)
+    generate_laravel_migrations(grt.root.wb.doc.physicalModels[0].catalog)
 except Exception:
     pass
