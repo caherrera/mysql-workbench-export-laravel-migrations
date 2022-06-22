@@ -96,15 +96,17 @@ migrations = {}
 migration_tables = []
 migrationTemplate = '''<?php
 
-namespace Database\Migrations;
+/**
+ * Created using Mysql Workbench.
+ * Avoid edit this file
+ *
+ */
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class Create{tableNameCamelCase}Table extends Migration
+return new class extends Migration
 {{
     /**
      * Run the migrations.
@@ -148,8 +150,8 @@ migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
 
 ModuleInfo = DefineModule(
     name='GenerateLaravelMigrations',
-    author='Pat Gagnon-Renaud (eXolnet)',
-    version='1.2.0'
+    author='Carlos Herrera (caherrera), Pat Gagnon-Renaud (eXolnet), Brandon Eckenrode (beckenrode)',
+    version='1.2.1'
 )
 
 
