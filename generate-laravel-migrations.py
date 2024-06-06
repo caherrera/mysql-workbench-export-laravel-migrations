@@ -145,7 +145,7 @@ indexKeyTemplate = '''
 
 migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
     }}
-}}
+}};
 '''
 
 ModuleInfo = DefineModule(
