@@ -55,13 +55,13 @@ typesDict = {
     'TIMESTAMP': 'timestamp',
     'TIMESTAMP_F': 'timestamp',
     'YEAR': 'smallInteger',
-    'GEOMETRY': '',
-    'LINESTRING': '',
-    'POLYGON': '',
-    'MULTIPOINT': '',
-    'MULTILINESTRING': '',
-    'MULTIPOLYGON': '',
-    'GEOMETRYCOLLECTION': '',
+    'GEOMETRY': 'geometry',
+    'LINESTRING': 'lineString',
+    'POLYGON': 'polygon',
+    'MULTIPOINT': 'multiPoint',
+    'MULTILINESTRING': 'multiLineString',
+    'MULTIPOLYGON': 'multiPolygon',
+    'GEOMETRYCOLLECTION': 'geometryCollection',
     'BIT': '',
     'ENUM': 'enum',
     'SET': '',
@@ -151,7 +151,7 @@ migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
 ModuleInfo = DefineModule(
     name='GenerateLaravelMigrations',
     author='Carlos Herrera (caherrera), Pat Gagnon-Renaud (eXolnet), Brandon Eckenrode (beckenrode)',
-    version='1.2.1'
+    version='1.3.0'
 )
 
 
@@ -274,7 +274,7 @@ def generate_laravel_migrations(catalog):
                         primary_col = None
 
                     # Generate indexes
-                    indexes = {"primary": {}, "unique": {}, "index": {}}
+                    indexes = {"primary": {}, "unique": {}, "index": {}, "fulltext": {}}
                     for index in tbl.indices:
                         index_type = index.indexType.lower()
                         if index_type == "primary":
