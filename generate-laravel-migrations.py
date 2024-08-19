@@ -118,6 +118,12 @@ return new class extends Migration
         Schema::create('{tableName}', function (Blueprint $table) {{
 '''
 
+foreignKeySectionTemplate = '''
+        }});
+
+        Schema::table('{tableName}', function (Blueprint $table) {{
+'''
+
 foreignKeyTemplate = '''
             $table->foreign('{foreignKey}')
                   ->references('{tableKeyName}')->on('{foreignTableName}')
@@ -440,6 +446,9 @@ def generate_laravel_migrations(catalog):
                                 )
                                 migrations[ti].append(index_key_template)
 
+                    if len(tbl.foreignKeys):
+                        migrations[ti].append(foreignKeySectionTemplate.format(tableName=table_name));
+                    
                     for key in tbl.foreignKeys:
                         if key.name != '' and hasattr(key.index, 'name'):
                             index_name = key.index.name
