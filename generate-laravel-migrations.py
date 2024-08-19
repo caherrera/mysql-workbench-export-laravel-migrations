@@ -157,7 +157,7 @@ migrationEndingTemplate = '''        Schema::dropIfExists('{tableName}');
 ModuleInfo = DefineModule(
     name='GenerateLaravelMigrations',
     author='Carlos Herrera (caherrera), Pat Gagnon-Renaud (eXolnet), Brandon Eckenrode (beckenrode)',
-    version='1.3.0'
+    version='1.4.0'
 )
 
 
